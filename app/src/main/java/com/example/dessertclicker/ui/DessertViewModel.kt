@@ -3,11 +3,20 @@ package com.example.dessertclicker.ui
 import androidx.compose.runtime.asIntState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.dessertclicker.data.Datasource
 import com.example.dessertclicker.model.Dessert
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+// I am not sure where to put this so I've put it here
+data class ShareIntentData(
+    val dessertsSold: Int,
+    val revenue: Int
+)
 
 class DessertViewModel : ViewModel() {
     // QUESTION: When to put things into the UI state flow vs public state variable?
@@ -16,6 +25,8 @@ class DessertViewModel : ViewModel() {
 
     private var _dessertsSold = mutableIntStateOf(0)
     val dessertsSold = _dessertsSold.asIntState()
+
+    val startShareActivity = MutableSharedFlow<ShareIntentData>()
 
     private val _uiState = MutableStateFlow(
         DessertUiState(
@@ -62,4 +73,16 @@ class DessertViewModel : ViewModel() {
 
         return dessertToShow
     }
+
+    fun onShareButtonClick() {
+        viewModelScope.launch {
+            startShareActivity.emit(
+                ShareIntentData(
+                    dessertsSold = dessertsSold.intValue,
+                    revenue = revenue.intValue
+                )
+            )
+        }
+    }
+
 }

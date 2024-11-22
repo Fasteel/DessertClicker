@@ -17,14 +17,13 @@
 package com.example.dessertclicker
 
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -58,7 +57,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -66,18 +64,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.dessertclicker.ui.DessertViewModel
 import com.example.dessertclicker.ui.theme.DessertClickerTheme
-
-// Tag for logging
-private const val TAG = "MainActivity"
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val dessertViewModel = viewModels<DessertViewModel>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "onCreate Called")
+        subscribeToShareActivityEvent()
         setContent {
             DessertClickerTheme {
                 // A surface container using the 'background' color from the theme
@@ -91,32 +91,37 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
+    private fun subscribeToShareActivityEvent() {
+        lifecycleScope.launch {
+            dessertViewModel.value.startShareActivity.collectLatest { data ->
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(
+                        Intent.EXTRA_TEXT,
+                        applicationContext.getString(
+                            R.string.share_text,
+                            data.dessertsSold,
+                            data.revenue,
+                        )
+                    )
+                    type = "text/plain"
+                }
 
-/**
- * Share desserts sold information using ACTION_SEND intent
- */
-private fun shareSoldDessertsInformation(intentContext: Context, dessertsSold: Int, revenue: Int) {
-    val sendIntent = Intent().apply {
-        action = Intent.ACTION_SEND
-        putExtra(
-            Intent.EXTRA_TEXT,
-            intentContext.getString(R.string.share_text, dessertsSold, revenue)
-        )
-        type = "text/plain"
-    }
+                val shareIntent = Intent.createChooser(sendIntent, null)
+                shareIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-    val shareIntent = Intent.createChooser(sendIntent, null)
-
-    try {
-        ContextCompat.startActivity(intentContext, shareIntent, null)
-    } catch (e: ActivityNotFoundException) {
-        Toast.makeText(
-            intentContext,
-            intentContext.getString(R.string.sharing_not_available),
-            Toast.LENGTH_LONG
-        ).show()
+                try {
+                    ContextCompat.startActivity(applicationContext, shareIntent, null)
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(
+                        applicationContext,
+                        applicationContext.getString(R.string.sharing_not_available),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
     }
 }
 
@@ -128,15 +133,10 @@ private fun DessertClickerApp(
 
     Scaffold(
         topBar = {
-            val intentContext = LocalContext.current
             val layoutDirection = LocalLayoutDirection.current
             DessertClickerAppBar(
                 onShareButtonClicked = {
-                    shareSoldDessertsInformation(
-                        intentContext = intentContext,
-                        dessertsSold = dessertViewModel.dessertsSold.intValue,
-                        revenue = dessertViewModel.revenue.intValue
-                    )
+                    dessertViewModel.onShareButtonClick()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
