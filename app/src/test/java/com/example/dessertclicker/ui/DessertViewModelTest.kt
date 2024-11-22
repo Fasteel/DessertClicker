@@ -75,7 +75,11 @@ class DessertViewModelTest {
 
         viewModel.onShareButtonClick()
 
-        testScheduler.advanceTimeBy(1000) // Is there a better way to do it?
+        // Since the coroutine never finished (because it live as long as the view model), how
+        // should I know that the first emission is finished and stop the coroutine?
+        // I've advanced the time but it seems hacky to me...
+        // QUESTION: Is there a better way to do it?
+        testScheduler.advanceTimeBy(1000)
 
         job.cancel()
 
@@ -95,7 +99,8 @@ class DessertViewModelTest {
         viewModel.onDessertClicked()
         viewModel.onShareButtonClick()
 
-        testScheduler.advanceTimeBy(1000) // Is there a better way to do it?
+        // QUESTION: same stuff, should I change it?
+        testScheduler.advanceTimeBy(1000)
 
         job.cancel()
 

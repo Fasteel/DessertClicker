@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// I am not sure where to put this so I've put it here
+// QUESTION: Where should it live?
 data class ShareIntentData(
     val dessertsSold: Int,
     val revenue: Int
